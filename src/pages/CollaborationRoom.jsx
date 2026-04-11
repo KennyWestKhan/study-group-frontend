@@ -9,6 +9,7 @@ export default function CollaborationRoom() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
+  const [session, setSession] = useState(null);
   const [activeScholars, setActiveScholars] = useState([]);
   const [inputMsg, setInputMsg] = useState('');
   const [socket, setSocket] = useState(null);
@@ -16,6 +17,17 @@ export default function CollaborationRoom() {
 
   useEffect(() => {
     if (!user) return; // Wait for user to be available
+
+    // 0. Fetch Session Details
+    const fetchSessionStatus = async () => {
+      try {
+        const res = await api.get(`/sessions/${id}`);
+        setSession(res.data);
+      } catch (err) {
+        console.error('Failed to load session details:', err);
+      }
+    };
+    fetchSessionStatus();
 
     // 1. Fetch Chat History
     const fetchHistory = async () => {
@@ -115,9 +127,11 @@ export default function CollaborationRoom() {
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-4">
                 <span className="bg-secondary-container text-primary text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider">Live Now</span>
-                <span className="text-white/60 text-xs font-label">Session: {id}</span>
+                <span className="text-white/60 text-xs font-label">Session ID: {id}</span>
               </div>
-              <h2 className="text-4xl font-extrabold text-white tracking-tight mb-2">Live Study Room</h2>
+              <h2 className="text-4xl font-extrabold text-white tracking-tight mb-2">
+                {session?.course ? 'Live Study Room :  ' + session.course : 'Loading Session...'}
+              </h2>
               <div className="mt-8 flex items-center gap-6">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur flex items-center justify-center">
