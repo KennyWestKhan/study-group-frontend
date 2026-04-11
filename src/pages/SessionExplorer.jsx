@@ -56,6 +56,30 @@ export default function SessionExplorer() {
     }
   };
 
+  const [activeFilter, setActiveFilter] = useState('All Disciplines');
+
+  const filteredSessions = sessions.filter(s => {
+    const matchesSearch = s.course?.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = activeFilter === 'All Disciplines' || 
+                         s.course?.toLowerCase().includes(activeFilter.toLowerCase()) ||
+                         (activeFilter === 'Engineering' && (s.course?.toLowerCase().includes('eng') || s.course?.toLowerCase().includes('circuit')));
+    return matchesSearch && matchesFilter;
+  });
+
+  const getCourseGradient = (courseName) => {
+    const gradients = [
+      'from-blue-500 to-indigo-600',
+      'from-emerald-400 to-cyan-500',
+      'from-amber-400 to-orange-500',
+      'from-purple-500 to-pink-500',
+      'from-rose-400 to-red-500',
+      'from-slate-700 to-slate-900'
+    ];
+    // Simple hash to pick a gradient
+    const charCodeSum = (courseName || '').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return gradients[charCodeSum % gradients.length];
+  };
+
   return (
     <div className="flex-1 bg-surface min-h-screen">
       {/* Hero Header Section */}
@@ -75,7 +99,13 @@ export default function SessionExplorer() {
             Join your fellow AIT Scholars in collaborative learning environments. From Circuit Theory to Advanced Software Engineering.
           </p>
           <div className="flex gap-4">
-            <button className="flex items-center gap-2 bg-secondary-container hover:bg-[#fecb00] text-primary font-bold px-8 py-4 rounded-xl transition-all shadow-lg active:scale-95">
+            <button 
+              onClick={() => {
+                setShowForm(true);
+                window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+              }}
+              className="flex items-center gap-2 bg-secondary-container hover:bg-[#fecb00] text-primary font-bold px-8 py-4 rounded-xl transition-all shadow-lg active:scale-95"
+            >
               <span className="material-symbols-outlined">add_circle</span>
               Create New AIT Session
             </button>
@@ -100,10 +130,19 @@ export default function SessionExplorer() {
         </div>
         
         <div className="flex gap-3 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-          <button className="whitespace-nowrap px-6 py-2 bg-primary text-white rounded-full text-sm font-semibold">All Disciplines</button>
-          <button className="whitespace-nowrap px-6 py-2 bg-white text-slate-600 rounded-full text-sm font-semibold hover:bg-slate-100 transition-colors">Engineering</button>
-          <button className="whitespace-nowrap px-6 py-2 bg-white text-slate-600 rounded-full text-sm font-semibold hover:bg-slate-100 transition-colors">Computer Science</button>
-          <button className="whitespace-nowrap px-6 py-2 bg-white text-slate-600 rounded-full text-sm font-semibold hover:bg-slate-100 transition-colors">Business</button>
+          {['All Disciplines', 'Engineering', 'Computer Science', 'Business'].map(filter => (
+            <button 
+              key={filter}
+              onClick={() => setActiveFilter(filter)}
+              className={`whitespace-nowrap px-6 py-2 rounded-full text-sm font-semibold transition-all ${
+                activeFilter === filter 
+                  ? 'bg-primary text-white shadow-lg' 
+                  : 'bg-white text-slate-600 hover:bg-slate-100'
+              }`}
+            >
+              {filter}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -119,57 +158,58 @@ export default function SessionExplorer() {
               <div className="h-10 bg-slate-200 rounded-xl"/>
             </div>
           ))
-        ) : sessions.filter(s => s.course?.toLowerCase().includes(search.toLowerCase())).length > 0 ? (
-          sessions
-            .filter(s => s.course?.toLowerCase().includes(search.toLowerCase()))
-            .map((session) => (
-            <div key={session.id} className="glass-card flex flex-col rounded-[2rem] p-8 border border-white/40 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all hover:-translate-y-1 overflow-hidden relative group">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-secondary-container/10 rounded-full blur-2xl group-hover:bg-secondary-container/20 transition-all"></div>
-              
-              <div className="flex justify-between items-start mb-6">
-                <span className="px-3 py-1 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full uppercase">
+        ) : filteredSessions.length > 0 ? (
+          filteredSessions.map((session) => (
+            <div key={session.id} className="glass-card flex flex-col rounded-[2rem] p-0 border border-white/40 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all hover:-translate-y-1 overflow-hidden relative group bg-white">
+              <div className={`h-32 bg-gradient-to-br ${getCourseGradient(session.course)} relative p-6`}>
+                <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase border border-white/30">
                   {session.status || 'Active'}
                 </span>
               </div>
               
-              <h3 className="text-2xl font-bold text-primary font-headline mb-2 leading-tight">
-                {session.course}
-              </h3>
-              <p className="text-slate-500 text-sm font-medium mb-6">
-                Connect and collaborate with peers in this live study session.
-              </p>
-              
-              <div className="space-y-4 mb-8 flex-1">
-                <div className="flex items-center gap-3 text-slate-600">
-                  <span className="material-symbols-outlined text-secondary">calendar_today</span>
-                  <span className="text-sm font-medium">
-                    {new Date(session.time).toLocaleString()}
-                  </span>
+              <div className="p-8 pt-6">
+                <h3 className="text-2xl font-bold text-primary font-headline mb-2 leading-tight">
+                  {session.course}
+                </h3>
+                <p className="text-slate-500 text-sm font-medium mb-6">
+                  Connect and collaborate with peers in this live study session.
+                </p>
+                
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-center gap-3 text-slate-600">
+                    <span className="material-symbols-outlined text-secondary">calendar_today</span>
+                    <span className="text-sm font-medium">
+                      {new Date(session.time).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 text-slate-600">
+                    <span className="material-symbols-outlined text-secondary">location_on</span>
+                    <span className="text-sm font-medium">{session.location}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-slate-600">
-                  <span className="material-symbols-outlined text-secondary">location_on</span>
-                  <span className="text-sm font-medium">{session.location}</span>
+                
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={(e) => handleJoin(e, session.id)}
+                    disabled={joiningId === session.id}
+                    className="w-full py-3 bg-secondary text-primary font-bold rounded-xl hover:bg-[#fecb00] transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {joiningId === session.id ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                        </svg>
+                        Joining...
+                      </>
+                    ) : 'Join Session'}
+                  </button>
+                  <Link to={`/room/${session.id}`} className="w-full py-4 bg-primary-container text-white font-bold rounded-2xl hover:bg-primary transition-all shadow-md active:scale-[0.98] text-center block">
+                    Enter Room
+                  </Link>
                 </div>
               </div>
-              
-              <button
-                onClick={(e) => handleJoin(e, session.id)}
-                disabled={joiningId === session.id}
-                className="mb-2 w-full py-2 bg-secondary text-primary font-bold rounded-xl hover:bg-[#fecb00] transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {joiningId === session.id ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                    </svg>
-                    Joining...
-                  </>
-                ) : 'Join Session'}
-              </button>
-              <Link to={`/room/${session.id}`} className="w-full py-4 bg-primary-container text-white font-bold rounded-2xl hover:bg-primary transition-all shadow-md active:scale-[0.98] text-center block">
-                Enter Room
-              </Link>
             </div>
           ))
         ) : (

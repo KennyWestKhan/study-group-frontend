@@ -18,7 +18,7 @@ export default function Login() {
       await login({ email, password });
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid credentials or network error.');
+      setError(err?.response?.data?.message || 'Invalid credentials or network error.');
     } finally {
       setLoading(false);
     }

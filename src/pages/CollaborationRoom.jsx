@@ -13,8 +13,27 @@ export default function CollaborationRoom() {
   const chatBottomRef = useRef(null);
 
   useEffect(() => {
-    // Connect to Socket.IO backend
-    const s = io(import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000');
+    // 1. Fetch Chat History
+    const fetchHistory = async () => {
+      try {
+        const res = await api.get(`/sessions/${id}/messages`);
+        // Map backend Message model to the format used in state
+        const history = res.data.map(m => ({
+          session_id: m.session_id,
+          user_id: m.user_id,
+          userName: m.User?.name || 'Scholar',
+          content: m.content,
+          createdAt: m.createdAt
+        }));
+        setMessages(history);
+      } catch (err) {
+        console.error('Failed to load chat history:', err);
+      }
+    };
+    fetchHistory();
+
+    // 2. Connect to Socket.IO backend
+    const s = io(import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5001');
     setSocket(s);
 
     s.on('connect', () => {
@@ -36,13 +55,25 @@ export default function CollaborationRoom() {
 
   const sendMessage = () => {
     if (inputMsg.trim() && socket) {
-      socket.emit('send_message', {
+      const messageData = {
         session_id: id,
-        user_id: user?.id || 1,
-        userName: user?.username || 'Guest',
+        user_id: user?.id,
+        userName: user?.name || 'Scholar',
         content: inputMsg,
-      });
+      };
+      socket.emit('send_message', messageData);
       setInputMsg('');
+    }
+  };
+
+  const handleLeaveSession = async () => {
+    try {
+      await api.post(`/sessions/${id}/leave`);
+      navigate('/sessions');
+    } catch (err) {
+      console.error('Error leaving session:', err);
+      // Still navigate away even if API fails as fallback
+      navigate('/sessions');
     }
   };
 
@@ -58,7 +89,7 @@ export default function CollaborationRoom() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/sessions')} className="flex items-center gap-2 bg-error-container/20 text-error px-4 py-2 rounded-xl text-sm font-bold hover:bg-error-container/40 transition-all">
+          <button onClick={handleLeaveSession} className="flex items-center gap-2 bg-error-container/20 text-error px-4 py-2 rounded-xl text-sm font-bold hover:bg-error-container/40 transition-all">
             <span className="material-symbols-outlined text-sm">exit_to_app</span>
             Leave Session
           </button>
@@ -102,7 +133,7 @@ export default function CollaborationRoom() {
             
             <div className="flex-grow overflow-y-auto p-6 space-y-6">
               {messages.map((msg, i) => {
-                const isMe = msg.userName === user?.username || msg.user_id === user?.id;
+                const isMe = msg.userName === user?.name || msg.user_id === user?.id;
                 return (
                   <div key={i} className={`flex gap-4 items-start max-w-[85%] ${isMe ? 'justify-end ml-auto' : ''}`}>
                     {!isMe && (
@@ -154,11 +185,11 @@ export default function CollaborationRoom() {
             <div className="overflow-y-auto space-y-4 pr-2">
               <div className="flex items-center gap-3 p-2 hover:bg-white rounded-2xl transition-all">
                 <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold relative">
-                  {user?.username?.charAt(0) || 'Y'}
+                  {user?.name?.charAt(0) || 'Y'}
                   <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-surface-container-low"></div>
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-primary">{user?.username || 'You'}</p>
+                  <p className="text-sm font-bold text-primary">{user?.name || 'You'}</p>
                 </div>
               </div>
             </div>
