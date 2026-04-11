@@ -65,7 +65,7 @@ export default function Profile() {
           </h2>
           
           <p className="text-xl md:text-2xl text-on-surface-variant font-medium max-w-xl">
-            Pursuing Excellence at <span className="text-primary font-bold">AIT</span>. {user?.name ? user.name.split(' ')[0] : 'This scholar'} is focused on mastering {user?.course || 'their curriculum'} through dedicated study and peer collaboration.
+            Pursuing Excellence at <span className="text-primary font-bold">{user?.location || 'AIT'}</span>. {user?.name ? user.name.split(' ')[0] : 'This scholar'} is focused on mastering {user?.course || 'their curriculum'} through dedicated study and peer collaboration.
           </p>
           
           <div className="flex flex-wrap gap-3 pt-4">

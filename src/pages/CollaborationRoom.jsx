@@ -2,22 +2,25 @@ import { useState, useEffect, useContext, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContextObj';
 import io from 'socket.io-client';
+import api from '../api/axios';
 
 export default function CollaborationRoom() {
   const { id } = useParams();
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
+  const [activeScholars, setActiveScholars] = useState([]);
   const [inputMsg, setInputMsg] = useState('');
   const [socket, setSocket] = useState(null);
   const chatBottomRef = useRef(null);
 
   useEffect(() => {
+    if (!user) return; // Wait for user to be available
+
     // 1. Fetch Chat History
     const fetchHistory = async () => {
       try {
         const res = await api.get(`/sessions/${id}/messages`);
-        // Map backend Message model to the format used in state
         const history = res.data.map(m => ({
           session_id: m.session_id,
           user_id: m.user_id,
@@ -37,17 +40,24 @@ export default function CollaborationRoom() {
     setSocket(s);
 
     s.on('connect', () => {
-      s.emit('join_room', id);
+      console.log('Socket connected, joining room:', id);
+      s.emit('join_room', { sessionId: id, user: { id: user.id, name: user.name } });
     });
 
     s.on('receive_message', (data) => {
+      console.log('Received message:', data);
       setMessages((prev) => [...prev, data]);
+    });
+
+    s.on('update_user_list', (users) => {
+      console.log('Updated user list:', users);
+      setActiveScholars(users);
     });
 
     return () => {
       s.disconnect();
     };
-  }, [id]);
+  }, [id, user]); // Added user to dependencies
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -183,15 +193,23 @@ export default function CollaborationRoom() {
               Active Scholars
             </h3>
             <div className="overflow-y-auto space-y-4 pr-2">
-              <div className="flex items-center gap-3 p-2 hover:bg-white rounded-2xl transition-all">
-                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold relative">
-                  {user?.name?.charAt(0) || 'Y'}
-                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-surface-container-low"></div>
+              {activeScholars.map((scholar, idx) => (
+                <div key={idx} className="flex items-center gap-3 p-2 hover:bg-white rounded-2xl transition-all">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white font-bold relative">
+                    {scholar.name?.charAt(0).toUpperCase() || 'S'}
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-surface-container-low"></div>
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-primary">{scholar.id === user?.id ? 'You' : scholar.name}</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Online</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-bold text-primary">{user?.name || 'You'}</p>
+              ))}
+              {activeScholars.length === 0 && (
+                <div className="flex items-center gap-3 p-2 opacity-50">
+                  <p className="text-sm font-medium text-slate-400 italic">No other scholars available...</p>
                 </div>
-              </div>
+              )}
             </div>
           </section>
         </div>

@@ -11,6 +11,7 @@ export default function Register() {
     skill_level: 'Beginner',
     location: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useContext(AuthContext);
@@ -96,15 +97,26 @@ export default function Register() {
               
               <div>
                 <label className="block font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold mb-2 ml-1">Password *</label>
-                <input 
-                  type="password" 
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className="w-full h-12 px-5 rounded-lg bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 text-on-surface placeholder:text-outline transition-all" 
-                  placeholder="••••••••" 
-                  required
-                />
+                <div className="relative group/pass">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="w-full h-12 px-5 pr-12 rounded-lg bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 text-on-surface placeholder:text-outline transition-all" 
+                    placeholder="••••••••" 
+                    required
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors focus:outline-none"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">
+                      {showPassword ? 'visibility_off' : 'visibility'}
+                    </span>
+                  </button>
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

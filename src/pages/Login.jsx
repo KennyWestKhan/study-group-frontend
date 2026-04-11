@@ -1,10 +1,12 @@
 import { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContextObj';
+import amaAvatar from '../assets/ama_avatar.png';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useContext(AuthContext);
@@ -59,7 +61,7 @@ export default function Login() {
                 "The most organized study experience I've ever had. My research project transformed in just one semester at AIT."
               </p>
               <div className="flex items-center gap-4">
-                <img alt="AIT scholar portrait" className="w-12 h-12 rounded-full border-2 border-secondary object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCr9SUnnyFcx_czAZQnvg15zkbYxSYvH8v8T1CBLRToBJ7Gz1Z2SEE9Sc0-_lDP2ky-Nd7kxFehl3wMhdFRJpx6v_2TFjGuf2XohdD-xJe6un1uoiNWN9DkaOPlxGbOZ5RNK7Yin7Hq7_qb3DdIOgG855uDuLjorCWIvAe9Wc_3cBcMiM9TCtRrhLJcTcs4bMr4Tt8WuW7mdebe-hafgRjZ0MJpWVpLOwEFbGqLVL3ySlRaXTioXhx4DjmFrEYECHgETQdF7Tdb4Zc"/>
+                <img alt="AIT scholar portrait" className="w-12 h-12 rounded-full border-2 border-secondary object-cover" src={amaAvatar}/>
                 <div>
                   <p className="font-headline font-bold text-sm">Ama Boateng</p>
                   <p className="text-xs text-primary-fixed-dim">BSc. Computer Science, AIT</p>
@@ -108,14 +110,25 @@ export default function Login() {
                   <label className="block font-label text-xs uppercase tracking-wider text-on-surface-variant font-bold">Password</label>
                   <Link to="/auth/forgot-password" className="text-xs font-bold text-primary hover:text-primary-container transition-colors">Forgot Password?</Link>
                 </div>
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-14 px-5 rounded-lg bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 text-on-surface placeholder:text-outline transition-all" 
-                  placeholder="••••••••" 
-                  required
-                />
+                <div className="relative group/pass">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full h-14 px-5 pr-12 rounded-lg bg-surface-container-low border-none focus:ring-2 focus:ring-primary/20 text-on-surface placeholder:text-outline transition-all" 
+                    placeholder="••••••••" 
+                    required
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors focus:outline-none"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      {showPassword ? 'visibility_off' : 'visibility'}
+                    </span>
+                  </button>
+                </div>
               </div>
               
               <div className="flex items-center">
