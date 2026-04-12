@@ -48,6 +48,26 @@ export default function Dashboard() {
     }
   };
 
+  const handleJoin = async (e, sessionId) => {
+    e.preventDefault();
+    try {
+      await api.post(`/sessions/${sessionId}/join`);
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Failed to join:', err);
+    }
+  };
+
+  const handleLeave = async (e, sessionId) => {
+    e.preventDefault();
+    try {
+      await api.post(`/sessions/${sessionId}/leave`);
+      fetchDashboardData();
+    } catch (err) {
+      console.error('Failed to leave:', err);
+    }
+  };
+
   const handleUpdateSession = async (e, manualStatus = null) => {
     if (e.preventDefault) e.preventDefault();
     setSavingSession(true);
@@ -299,6 +319,17 @@ export default function Dashboard() {
                   <option value="Advanced">Advanced</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Max Scholars (Max: 5)</label>
+                <input 
+                  type="number"
+                  min="2"
+                  max="5"
+                  value={editingSession.max_members}
+                  onChange={e => setEditingSession({...editingSession, max_members: e.target.value})}
+                  className="w-full h-14 px-6 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary transition-all font-medium"
+                />
+              </div>
               <div className="flex gap-4">
                 <button 
                   type="button"
@@ -350,19 +381,36 @@ export default function Dashboard() {
             recentSessions.map((session) => (
               <div key={session.id} className="group relative bg-white rounded-3xl overflow-hidden hover:shadow-xl transition-all duration-500 border border-slate-100">
                 <div className={`h-32 bg-gradient-to-br ${getCourseGradient(session.course)} relative`}>
-                  <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                  <span className="absolute bottom-3 left-4 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border border-white/30">{session.location}</span>
-                  {session.creator_id === user?.id && (
-                    <button 
-                      onClick={() => {
-                        setEditingSession(session);
-                        setShowEditModal(true);
-                      }}
-                      className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/40 transition-all"
-                    >
-                      <span className="material-symbols-outlined text-sm">edit</span>
-                    </button>
-                  )}
+                  <div className="absolute top-3 inset-x-4 flex justify-between items-start">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border border-white/30">{session.status || 'Active'}</span>
+                      {session.creator_id === user?.id && (
+                        <button 
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setEditingSession(session);
+                            setShowEditModal(true);
+                          }}
+                          className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/40 transition-all border border-white/30"
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                        </button>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg border border-white/50">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        <span className="text-[10px] font-bold text-primary">{session.active_count || 0}</span>
+                      </div>
+                      <div className="w-[1px] h-3 bg-slate-200 mx-1"></div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[12px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>group</span>
+                        <span className="text-[10px] font-bold text-slate-600">{session.members?.length || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <span className="absolute bottom-3 left-3 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider border border-white/30">{session.location}</span>
                 </div>
                 <div className="p-5">
                   <h5 className="text-lg font-bold text-primary mb-1 line-clamp-1">{session.course}</h5>
@@ -372,13 +420,33 @@ export default function Dashboard() {
                     <span className="text-slate-300">•</span>
                     <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Host: <span className="text-primary">{session.creator_id === user?.id ? 'Me' : (session.creator?.name || 'AIT Scholar')}</span></p>
                   </div>
-                  <div className="flex items-center justify-between mt-auto">
-                    <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1 uppercase">
-                      <span className="material-symbols-outlined text-xs">schedule</span> {new Date(session.time).toLocaleDateString()}
-                    </span>
-                    <Link to={`/room/${session.id}`} className="w-8 h-8 rounded-full bg-surface-container-high flex items-center justify-center text-primary group-hover:bg-secondary group-hover:text-white transition-colors">
-                      <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                    </Link>
+                  <div className="flex flex-col gap-3 mt-4">
+                    <div className="flex items-center gap-2">
+                      {session.creator_id !== user?.id && (
+                        session.members?.some(m => m.id === user?.id) ? (
+                          <button 
+                            onClick={(e) => handleLeave(e, session.id)}
+                            className="flex-1 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold hover:bg-slate-200 transition-all border border-slate-200"
+                          >
+                            Unregister
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={(e) => handleJoin(e, session.id)}
+                            disabled={session.status === 'Full'}
+                            className="flex-1 py-2 rounded-xl bg-secondary text-primary text-[10px] font-bold shadow-lg shadow-secondary/10 hover:scale-105 transition-all disabled:opacity-50"
+                          >
+                            {session.status === 'Full' ? 'Full' : 'Join'}
+                          </button>
+                        )
+                      )}
+                      <Link 
+                        to={`/room/${session.id}`}
+                        className="flex-1 py-2 rounded-xl bg-primary text-white text-center text-[10px] font-bold hover:bg-primary-container transition-all"
+                      >
+                        Enter Room
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -54,9 +54,24 @@ export default function SessionExplorer() {
     setJoiningId(sessionId);
     try {
       await api.post(`/sessions/${sessionId}/join`);
-      alert('Successfully joined the session! Click to enter the room.');
+      fetchSessions();
+      alert('Successfully joined the session!');
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to join session');
+    } finally {
+      setJoiningId(null);
+    }
+  };
+
+  const handleLeave = async (e, sessionId) => {
+    e.preventDefault();
+    setJoiningId(sessionId);
+    try {
+      await api.post(`/sessions/${sessionId}/leave`);
+      fetchSessions();
+      alert('You have unregistered from this session.');
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to leave session');
     } finally {
       setJoiningId(null);
     }
@@ -185,20 +200,36 @@ export default function SessionExplorer() {
             <div key={session.id} className="glass-card flex flex-col rounded-[2rem] p-0 border border-white/40 shadow-xl shadow-slate-200/50 hover:shadow-2xl transition-all hover:-translate-y-1 overflow-hidden relative group bg-white">
               <div className={`h-32 bg-gradient-to-br ${getCourseGradient(session.course)} relative p-6`}>
                 <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase border border-white/30">
-                  {session.status || 'Active'}
-                </span>
-                {session.creator_id === user?.id && (
-                  <button 
-                    onClick={() => {
-                      setEditingSession(session);
-                      setShowEditModal(true);
-                    }}
-                    className="absolute top-4 right-4 w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/40 transition-all border border-white/30"
-                  >
-                    <span className="material-symbols-outlined text-sm">edit</span>
-                  </button>
-                )}
+                <div className="flex justify-between items-start w-full relative z-10">
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-1 bg-white/20 backdrop-blur-md text-white text-[10px] font-bold rounded-full uppercase border border-white/30">
+                      {session.status || 'Active'}
+                    </span>
+                    {session.creator_id === user?.id && (
+                      <button 
+                        onClick={() => {
+                          setEditingSession(session);
+                          setShowEditModal(true);
+                        }}
+                        className="w-8 h-8 rounded-lg bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:bg-white/40 transition-all border border-white/30"
+                      >
+                        <span className="material-symbols-outlined text-sm">edit</span>
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl shadow-lg border border-white/50">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                      <span className="text-[10px] font-bold text-primary">{session.active_count || 0} Online</span>
+                    </div>
+                    <div className="w-[1px] h-3 bg-slate-200 mx-1"></div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[12px] text-secondary" style={{ fontVariationSettings: "'FILL' 1" }}>group</span>
+                      <span className="text-[10px] font-bold text-slate-600">{session.members?.length || 0} Registered</span>
+                    </div>
+                  </div>
+                </div>
               </div>
               
               <div className="p-8 pt-6">
@@ -227,21 +258,33 @@ export default function SessionExplorer() {
                 </div>
                 
                 <div className="flex flex-col gap-3">
-                  <button
-                    onClick={(e) => handleJoin(e, session.id)}
-                    disabled={joiningId === session.id}
-                    className="w-full py-3 bg-secondary text-primary font-bold rounded-xl hover:bg-[#fecb00] transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                  >
-                    {joiningId === session.id ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
-                        </svg>
-                        Joining...
-                      </>
-                    ) : 'Join Session'}
-                  </button>
+                  {session.creator_id !== user?.id && (
+                    session.members?.some(m => m.id === user?.id) ? (
+                      <button
+                        onClick={(e) => handleLeave(e, session.id)}
+                        disabled={joiningId === session.id}
+                        className="w-full py-3 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-all border border-slate-200 flex items-center justify-center gap-2 disabled:opacity-70"
+                      >
+                        {joiningId === session.id ? 'Processing...' : 'Unregister Session'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => handleJoin(e, session.id)}
+                        disabled={joiningId === session.id || session.status === 'Full'}
+                        className="w-full py-3 bg-secondary text-primary font-bold rounded-xl hover:bg-[#fecb00] transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                      >
+                        {joiningId === session.id ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                            </svg>
+                            Joining...
+                          </>
+                        ) : session.status === 'Full' ? 'Session Full' : 'Join Session'}
+                      </button>
+                    )
+                  )}
                   <Link to={`/room/${session.id}`} className="w-full py-4 bg-primary-container text-white font-bold rounded-2xl hover:bg-primary transition-all shadow-md active:scale-[0.98] text-center block">
                     Enter Room
                   </Link>
@@ -313,7 +356,8 @@ export default function SessionExplorer() {
             <input 
               type="number" 
               min="2" 
-              placeholder="Max Members (default: 5)" 
+              max="5"
+              placeholder="Max Members (Max: 5)" 
               value={newSession.max_members} 
               onChange={e => setNewSession({...newSession, max_members: e.target.value})} 
               className="mb-8 w-full p-3 rounded-xl bg-slate-50 border-none focus:ring-2 focus:ring-secondary/30"
@@ -401,6 +445,17 @@ export default function SessionExplorer() {
                   <option value="Intermediate">Intermediate</option>
                   <option value="Advanced">Advanced</option>
                 </select>
+              </div>
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Max Scholars (Max: 5)</label>
+                <input 
+                  type="number"
+                  min="2"
+                  max="5"
+                  value={editingSession.max_members}
+                  onChange={e => setEditingSession({...editingSession, max_members: e.target.value})}
+                  className="w-full h-14 px-6 rounded-2xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary transition-all font-medium"
+                />
               </div>
               <div className="flex gap-4">
                 <button 
